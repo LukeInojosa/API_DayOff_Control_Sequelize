@@ -6,6 +6,7 @@ import User from "./User.js";
 // Define Relationships between models
 
 Employer.hasOne(User,{
+    onDelete: 'CASCADE',
     foreignKey: {
         name: "employerId",
     }
@@ -17,6 +18,7 @@ User.belongsTo(Employer,{
 })
 
 Employee.hasOne(User, {
+    onDelete: 'CASCADE',
     foreignKey: {
         name: "employeeId",
     }

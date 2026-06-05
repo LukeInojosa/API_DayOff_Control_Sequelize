@@ -1,4 +1,4 @@
-import { Employee } from "../Models/index.js";
+import { Employee, Employer , User} from "../Models/index.js";
 
 class employeeServices{
     static async createEmployee(data){
@@ -27,6 +27,30 @@ class employeeServices{
         if(!employee) throw new Error("Failed to create employee")
         
         return employee
+    }
+
+    static async getEmployee(data){
+        const { username, cpf} = data
+        if (cpf){
+            const employee = await Employee.findOne({
+                where:{
+                    cpf
+                }
+            })
+            return employee
+        }else if (username){
+            const user = await User.findOne({
+                where: {
+                    username
+                },
+                include: Employee
+            })
+            if (!user.Employee) return {}
+            
+            return user.Employee
+        }else {
+            return {}
+        }
     }
 }
 

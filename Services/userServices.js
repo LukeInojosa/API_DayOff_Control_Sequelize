@@ -37,13 +37,19 @@ class userServices{
         return user
     }
 
-    static async getAllUsers(data){
-        return await User.findAll({
-            include: [
-                {model: Employee},
-                {model: Employer}
-            ]
-        })
+    static async getAllUsers(){
+        try{
+            const users = await User.findAll({
+                include: [
+                    {model: Employee},
+                    {model: Employer}
+                ]
+            })
+            return users
+        }catch (error){
+            console.log(error)
+            return {}
+        }
     }
 
     static async createUser(data){
@@ -80,6 +86,72 @@ class userServices{
         return user
     }
 
+    static async deleteUser(data){
+        const {role} = data
+        if (role=== 'employee'){
+            const {username, cpf, name, employerAutentication} = data
+            const {username: employerUsername, password: employerPassword} = employerAutentication
+
+            const user = await User.findOne({
+                where: {
+                    username: employerUsername
+                },
+                include: Employer
+            })
+
+            if(!user) throw new Error("This user dont have Autorization to delete")
+
+            const isSamePassword = await bcrypt.compare(employerPassword, user.password)
+
+            if (!isSamePassword) throw new Error("This user dont have Autorization to delete")
+            if(!user.Employer) throw new Error("This user dont have Autorization to delete")
+
+            const employer = user.Employer
+            const employee = await employeeServices.getEmployee({username, cpf})
+
+            if (employee.employerId != employer.cnpj) throw new Error("This is not your employee, so you can\'t delete him")
+
+            const result = await Employee.destroy({
+                where: {
+                    cpf: employee.cpf
+                }
+            })
+
+            console.log('result of destroy employer:')
+            console.log(result)
+            
+            return employee.toJSON()
+
+        }else if (role === 'employer'){
+            const {username, password} = data
+            const user = await User.findOne({
+                where:{
+                    username
+                }
+            })
+
+            if (!user || !user.employerId  ) throw new Error('Employer dont exist or password is incorrect')
+
+            const isSamePassword = await bcrypt.compare(password,user.password)
+
+            if (!isSamePassword) throw new Error('Employer don\'t exist or password is incorrect. You dont have autorization to delete this user')
+
+            const employer = await user.getEmployer()
+
+            const result = await Employer.destroy({
+                where:{
+                    cnpj: employer.cnpj
+                }
+            })
+
+            console.log('result of destroy employer:')
+            console.log(result)
+
+            return employer.toJSON()
+        }else {
+            throw new Error('Invalid role')
+        }
+    }
 
 }
 

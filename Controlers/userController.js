@@ -15,9 +15,23 @@ class userController{
         }
     }
 
+    static async deleteUser(req,res,next){
+        try{
+            const user = await userServices.deleteUser(req.body)
+
+            return res.status(201).send({
+                user: user,
+                message: "User was successfully deleted"
+            })
+        }catch(error){
+            console.log(error)
+            next(error)
+        }
+    }
+
     static async getAllUsers(req,res,next){
         try{
-            const users = await userServices.getAllUsers(req.body)
+            const users = await userServices.getAllUsers()
             return res.status(201).send({
                 users
             })
