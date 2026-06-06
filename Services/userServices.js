@@ -37,9 +37,15 @@ class userServices{
         return user
     }
 
-    static async getAllUsers(){
+    static async getAllUsers(data){
         try{
+            const {username} = data
+            
+            let where = {}
+            if (username) where.username = username
+
             const users = await User.findAll({
+                where,
                 include: [
                     {model: Employee},
                     {model: Employer}

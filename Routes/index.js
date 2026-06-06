@@ -1,3 +1,3 @@
 import userRoutes from "./userRoutes.js"
-
-export {userRoutes}
+import authRoutes from "./authRoutes.js"
+export {userRoutes, authRoutes}

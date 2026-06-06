@@ -31,7 +31,7 @@ class userController{
 
     static async getAllUsers(req,res,next){
         try{
-            const users = await userServices.getAllUsers()
+            const users = await userServices.getAllUsers(req.params)
             return res.status(201).send({
                 users
             })
