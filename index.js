@@ -7,13 +7,13 @@ import errorMiddleware from "./Middlewares/errorMiddleware.js";
 const app = express();
 
 
-app.use(cors())
-app.use(express.json())
+app.use(cors()) // Permite requisições de outras origens
+app.use(express.json()) // converte body para json
 
-app.use(authRoutes)
-app.use(authController.checkAutentication)
-app.use(userRoutes)
-app.use(errorMiddleware);
+app.use(authRoutes)// define rota de autenticação
+app.use(authController.checkAutentication)// middleware para checar autenticação
+app.use(userRoutes)// Rotas do usuário 
+app.use(errorMiddleware);// middleware para comunicar erro
 
 app.listen(3000, () => {
     console.log("Server is running on port 3000")

@@ -29,7 +29,7 @@ class authServices{
     }
     static async checkAutentication(data){
         const {authorization: token} = data
-        if (!token) return false
+        if (!token) return null
 
         const [,acessToken] = token.split(' ')
 
@@ -42,13 +42,13 @@ class authServices{
             attributes: ['password']
         })
 
-        if (!user) return false
+        if (!user) return null
 
         const isSamePassword = await bcrypt.compare(password, user.password)
 
-        if (!isSamePassword) return false
+        if (!isSamePassword) return null
 
-        return true
+        return {username, password}
     }
 }
 

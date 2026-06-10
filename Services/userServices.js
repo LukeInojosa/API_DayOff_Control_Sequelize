@@ -40,7 +40,7 @@ class userServices{
     static async getAllUsers(data){
         try{
             const {username} = data
-            
+
             let where = {}
             if (username) where.username = username
 
@@ -91,74 +91,124 @@ class userServices{
         if(!user) throw new Error("Failed to create user")
         return user
     }
+    static async getUserRole(user){
+        if (user.employeeId) return 'employee'
+        return 'employer'
+    }
 
     static async deleteUser(data){
-        const {role} = data
-        if (role=== 'employee'){
-            const {username, cpf, name, employerAutentication} = data
-            const {username: employerUsername, password: employerPassword} = employerAutentication
+        const {username, cpf, cnpj, requestUsername} = data
 
-            const user = await User.findOne({
-                where: {
-                    username: employerUsername
-                },
-                include: Employer
-            })
+        let where = {}
+        if (username) where.username = username
+        if (cpf) where.employeeId = cpf
+        if (cnpj) where.employerId = cnpj
 
-            if(!user) throw new Error("This user dont have Autorization to delete")
+        if ((where?.employeeId && where?.employerId) || (!where?.employeeId && !where?.employerId && !where?.username)) throw new Error("requisição errada")
 
-            const isSamePassword = await bcrypt.compare(employerPassword, user.password)
+        const userToDelete = await User.findOne({
+            where,
+        })
 
-            if (!isSamePassword) throw new Error("This user dont have Autorization to delete")
-            if(!user.Employer) throw new Error("This user dont have Autorization to delete")
+        if (!userToDelete) throw new Error('no user to delete')
 
-            const employer = user.Employer
-            const employee = await employeeServices.getEmployee({username, cpf})
+        const role = await this.getUserRole(userToDelete)
 
-            if (employee.employerId != employer.cnpj) throw new Error("This is not your employee, so you can\'t delete him")
-
+        if (role == "employee"){
+            const employer = await this.getEmployerOfEmployee(userToDelete)
+            if (!employer) throw new Error ('user is not a employee')
+            if (employer.username !== requestUsername) throw new Error ('you cant delete this user')
             const result = await Employee.destroy({
                 where: {
-                    cpf: employee.cpf
+                    cpf: userToDelete.employeeId
                 }
             })
+            return result
+        }
 
-            console.log('result of destroy employer:')
-            console.log(result)
-            
-            return employee.toJSON()
+        if(requestUsername !== userToDelete.username) throw new Error('you cant delete this user')
+        const result = await Employer.destroy({
+            where:{
+                cnpj: userToDelete.employerId
+            }
+        })
+        return result
+    }
 
-        }else if (role === 'employer'){
-            const {username, password} = data
-            const user = await User.findOne({
-                where:{
-                    username
+    static async alterUser(data){
+        const {username, modifications} = data
+        const user = await User.findOne({
+            where:{
+                username
+            },
+            include: [
+                {model: Employee},
+                {model: Employer}
+            ]
+
+        })
+        if (user.Employer){
+            const res = await Employer.update(modifications, {
+                where: {
+                    cnpj: user.Employer.cnpj
                 }
-            })
-
-            if (!user || !user.employerId  ) throw new Error('Employer dont exist or password is incorrect')
-
-            const isSamePassword = await bcrypt.compare(password,user.password)
-
-            if (!isSamePassword) throw new Error('Employer don\'t exist or password is incorrect. You dont have autorization to delete this user')
-
-            const employer = await user.getEmployer()
-
-            const result = await Employer.destroy({
-                where:{
-                    cnpj: employer.cnpj
+            }) 
+            return res
+        }else if (user.Employee){
+            const res = await Employee.update(modifications, {
+                where: {
+                    cpf: user.Employee.cpf
                 }
-            })
-
-            console.log('result of destroy employer:')
-            console.log(result)
-
-            return employer.toJSON()
-        }else {
-            throw new Error('Invalid role')
+            }) 
+            return res
+        }else{
+            throw new Error("User dont exist")
         }
     }
 
+    static async getEmployerOfEmployee(data){
+        if (data instanceof Employee){
+            const employer = await data.getEmployer()
+            return await employer.getUser()
+        } else if (data instanceof User){
+            if (!data.employeeId) return null
+            const employee = await data.getEmployee()
+            const employer =  await employee.getEmployer()
+            return await employer.getUser()
+        }else if (data?.employeeUsername){
+            const {employeeUsername} = data
+            const user = await User.findOne({
+                where:{
+                    username: employeeUsername
+                },
+                include: Employee
+            })
+            
+            if (user.employerId) return null
+            if (!user.Employee) return null
+        
+            const employer = await user.Employee.getEmployer()
+
+            const employerUser = await employer.getUser()
+
+            return employerUser
+        }
+        return null
+    }
+
+    static async checkUpdatePermissions(data){
+        const {requestUsername,updateUsername} = data
+        // If it is me , so i have permission
+        if (requestUsername == updateUsername) return true
+        
+        // If is my employee, do i have permission
+        const employerUser = await this.getEmployerOfEmployee({
+            employeeUsername: updateUsername
+        })
+        if (employerUser?.username !== updateUsername) return false
+
+        return true
+    }
 }
 
 export default userServices

@@ -9,6 +9,8 @@ class authController{
             res.status(201).send({
                 token
             })
+
+            
         }catch(error){
             console.log(error)
             return next(error)
@@ -24,6 +26,10 @@ class authController{
                 })
             }   
             
+            req.user = {
+                username: checkedAutentication.username
+            }
+
             return next()
         }catch (error){
             console.log(error)

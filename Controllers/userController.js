@@ -17,7 +17,10 @@ class userController{
 
     static async deleteUser(req,res,next){
         try{
-            const user = await userServices.deleteUser(req.body)
+            const {username,cpf,cnpj} = req.body 
+            const {username: requestUsername} = req.user
+            
+            const user = await userServices.deleteUser({requestUsername, username, cpf,cnpj})
 
             return res.status(201).send({
                 user: user,
@@ -59,6 +62,28 @@ class userController{
                 message: "User found successfully",
             })
         }catch(error){
+            next(error)
+        }
+    }
+
+    static async alterUser(req,res,next){
+        try{
+            const {username} = req.params
+            const {modifications} = req.body
+            
+            if(!await userServices.checkUpdatePermissions({
+                requestUsername: req.user.username,
+                updateUsername: username
+            })) return res.status(401).send({
+                message: 'you dont have permission to change this data'
+            })
+            
+            const modifiedUser = await userServices.alterUser({username, modifications})
+
+            res.status(201).send({
+                modifiedUser
+            })
+        }catch (error){
             next(error)
         }
     }
