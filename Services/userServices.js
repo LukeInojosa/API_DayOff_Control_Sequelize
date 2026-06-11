@@ -57,23 +57,12 @@ class userServices{
             return {}
         }
     }
-
     static async createUser(data){
-        const {role} = data
-        let user = null;
-        if (role === "employee"){
-            const {cpf, name, cnpj, companyName} = data
-            const employee = await employeeServices.createEmployee({cpf,name,cnpj,companyName})
+        const {requestUsername,requestRole} = data
+        let user = null
 
-            const {username,password} = data
-            user = await userServices.createEmployeeUser({
-                username,
-                password,
-                cpf: employee.cpf
-            })
-
-        }else if(role === "employer"){
-
+        // se usuário não está autenticado, então ele pode criar sua conta como empregador
+        if (!requestUsername && !requestRole) {
             const {cnpj, companyName} = data
             const employer = await employerServices.createEmployer({cnpj,companyName})
 
@@ -83,14 +72,36 @@ class userServices{
                 password, 
                 cnpj: employer.cnpj
             })
+        }else if (requestRole == "employer"){ // se usuário está autenticado, então ele pode criar apenas empregados
+            const {requestUsername} = data
+            const {employerId} = await User.findOne({
+                where: {
+                    username: requestUsername
+                },
+                attributes: ['employerId']
+            })
 
+            const {cpf, name} = data
+
+            const employee = await employeeServices.createEmployee({
+                cpf,
+                name,
+                cnpj: employerId
+            })
+
+            const {username,password} = data
+            user = await userServices.createEmployeeUser({
+                username,
+                password,
+                cpf: employee.cpf
+            })
         }else {
-            throw new Error("Invalid role")
+            throw new Error('you cant create a user')
         }
-
         if(!user) throw new Error("Failed to create user")
         return user
     }
+
     static async getUserRole(user){
         if (user.employeeId) return 'employee'
         return 'employer'

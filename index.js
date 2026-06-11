@@ -12,7 +12,7 @@ app.use(express.json()) // converte body para json
 
 app.use(authRoutes)// define rota de autenticação
 app.use(authController.checkAutentication)// middleware para checar autenticação
-app.use(userRoutes)// Rotas do usuário 
+app.use('/user',userRoutes)// Rotas do usuário 
 app.use(errorMiddleware);// middleware para comunicar erro
 
 app.listen(3000, () => {

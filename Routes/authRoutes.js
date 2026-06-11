@@ -3,6 +3,6 @@ import { authController } from "../Controllers/index.js";
 const router = Router()
 
 router
-    .post('/auth', authController.autenticate)
-
+    .post('/signIn', authController.signIn)
+    .post('/signUp', authController.signUp)
 export default router

@@ -2,9 +2,14 @@ import bcrypt, { hash } from "bcryptjs"
 import jwt from 'jsonwebtoken'
 import { User } from "../Models/index.js"
 import { jwt_key, algorithm } from "../Config/index.js"
+import { userServices } from "./index.js"
 
 class authServices{
-    static async autenticate(data){
+    static async signUp(data){ 
+        const user = await userServices.createUser(data)
+        return user
+    }
+    static async signIn(data){
         const {username, password} = data
 
         const {password:hashedPassword} = await User.findOne({
@@ -48,7 +53,9 @@ class authServices{
 
         if (!isSamePassword) return null
 
-        return {username, password}
+        const role = user.employeeId? 'employee': 'employer'
+
+        return {username, role}
     }
 }
 

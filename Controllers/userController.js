@@ -1,9 +1,18 @@
+import User from "../Models/User.js"
 import { userServices } from "../Services/index.js"
 
 class userController{
     static async createUser(req, res,next){
         try{
-            const user = await userServices.createUser(req.body)
+            const {cpf, cnpj, name, companyName, username, password} = req.body
+            const {username: requestUsername, role: requestRole} = req.user
+
+            const user = await userServices.createUser({
+                username, password,
+                cpf,name,
+                cnpj,companyName,
+                requestUsername, requestRole
+            })
             
             return res.status(201).send({
                 user: user.toJSON(),
@@ -15,11 +24,19 @@ class userController{
         }
     }
 
+    static async getMe(req,res,next){
+        const {username} = req.user
+        const user=  await userServices.getAllUsers({username})
+        res.status(201).send({
+            user
+        })
+    }
+
     static async deleteUser(req,res,next){
         try{
             const {username,cpf,cnpj} = req.body 
             const {username: requestUsername} = req.user
-            
+
             const user = await userServices.deleteUser({requestUsername, username, cpf,cnpj})
 
             return res.status(201).send({
